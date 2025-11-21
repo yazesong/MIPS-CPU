@@ -1,0 +1,8 @@
+MIPS-CPU.cache/
+MIPS-CPU.runs/
+*.dcp
+*.xci
+*.veo
+*.vho
+*.wdf
+*.log
