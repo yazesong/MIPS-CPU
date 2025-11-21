@@ -1,0 +1,4 @@
+vhdl xil_defaultlib  \
+"../../../../MIPS-CPU.gen/sources_1/ip/mult_gen_unsigned/sim/mult_gen_unsigned.vhd" \
+
+nosort
