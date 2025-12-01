@@ -1,0 +1,76 @@
+# ================================================================
+# Vivado Project Ignore List
+# ================================================================
+
+# Vivado project files
+*.xpr
+*.xise
+*.gise
+
+# Vivado auto-generated folders
+.ip_user_files/
+.cache/
+.hw/
+.runs/
+.sim/
+.gen/
+.srcs/sim*/xsim/
+.vivado/
+
+# Vivado database and logs
+*.jou
+*.log
+*.str
+*.pb
+*.html
+*.xml
+*.json
+
+# Vivado GUI backups
+*.backup.jou
+*.backup.log
+
+# Implementation and synthesis output
+*.edf
+*.edif
+*.dcp
+*.bit
+*.bin
+*.mmi
+*.ltx
+
+# IP core generated files
+**/ipstatic/
+**/example_design/
+**/example_project/
+
+# Simulation tools output (Modelsim/Questa/XSim)
+work/
+transcript
+vsim.wlf
+xsim.dir/
+*.wdb
+*.slm
+*.sim
+*.vcd
+*.vvp
+*.dat
+*.wlf
+
+# Temporary build files
+*.tmp
+*.temp
+*.cache
+*.swp
+*~
+*.bak
+
+# Vivado-generated testbench junk
+*.sti
+*.prm
+*.sdf
+*.svf
+
+# OS ignores
+.DS_Store
+Thumbs.db
