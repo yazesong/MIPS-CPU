@@ -187,7 +187,7 @@
 `define IO_WATCH_DOG 6'b000101  //看门狗
 `define IO_LED_LIGHT 6'b000110  //led灯
 `define IO_SWITCH 6'b000111  //拨码开关
-`define IO_BUZZER 6'b010001  //蜂鸣器
+`define IO_BUZZER 6'b010000  //蜂鸣器
 
 //cause寄存器的6-2位表示的异常类型
 `define ABN_INTERRUPT 5'b00000
@@ -196,7 +196,6 @@
 `define ABN_PRESERVE 5'b01010 
 `define ABN_OVERFLOW 5'b01100
 `define ABN_ERET 5'b01111
-
 
 
 

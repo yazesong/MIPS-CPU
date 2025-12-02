@@ -93,8 +93,8 @@ module biu_tb;
     addr = 32'hFFFF_FC70;
     #1 check(data_out == switch_data, "IO switch");
 
-    // IO: Buzzer（addr[9:4] = IO_BUZZER = 6'b010001 -> 0x44）
-    addr = 32'hFFFF_FC00 | (32'h44 << 4);
+    // IO: Buzzer（0xFFFF_FD00，addr[9:4]=0x10）
+    addr = 32'hFFFF_FD00;
     #1 check(data_out == buzzer_data, "IO buzzer");
 
     // 未匹配
