@@ -17,6 +17,8 @@
 .srcs/sim*/xsim/
 .vivado/
 
+MIPS-CPU/MIPS-CPU.srcs/sources_1/cpu1/
+MIPS-CPU/MIPS-CPU.srcs/sources_1/interface1/
 # Vivado database and logs
 *.jou
 *.log
@@ -74,3 +76,5 @@ xsim.dir/
 # OS ignores
 .DS_Store
 Thumbs.db
+
+.vcd

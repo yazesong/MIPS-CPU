@@ -1,0 +1,7 @@
+verilog xil_defaultlib --include "../../../ipstatic" \
+"../../../../MIPS-CPU.gen/sources_1/ip/clocking/clocking_clk_wiz.v" \
+"../../../../MIPS-CPU.gen/sources_1/ip/clocking/clocking.v" \
+
+verilog xil_defaultlib "glbl.v"
+
+nosort

@@ -1,0 +1,27 @@
+# .gitattributes
+# 强制所有文本文件使用 LF
+* text=auto eol=lf
+
+# Verilog/VHDL 源文件
+*.v text eol=lf
+*.sv text eol=lf
+*.vhd text eol=lf
+*.vh text eol=lf
+
+# 约束文件
+*.xdc text eol=lf
+*.sdc text eol=lf
+
+# 脚本文件
+*.tcl text eol=lf
+*.sh text eol=lf
+
+# 文档
+*.md text eol=lf
+*.txt text eol=lf
+
+# 二进制文件（不转换）
+*.png binary
+*.jpg binary
+*.bit binary
+*.bin binary

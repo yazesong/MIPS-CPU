@@ -24,6 +24,10 @@
 `define Enable 1'b1
 `define Disable 1'b0
 
+// 数据位宽相关
+`define WordWidth 32
+`define WordRange [31:0]
+
 // Minisys体系结构相关
 `define ZeroWord 32'h00000000 // 0x0字
 `define RegCount 32 // 寄存器数
