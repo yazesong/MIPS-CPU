@@ -47,6 +47,19 @@
 `define AddressRange 25:0 // 指令字中address的范围
 `define DivMulResultRange 63:0 // 乘除法结果范围 高低32位需分开
 
+// 存储器与IO地址映射
+`define ROM_BASE_ADDR   32'h0000_0000
+`define ROM_SIZE        32'h0001_0000   // 64KB
+`define RAM_BASE_ADDR   32'h8000_0000
+`define RAM_SIZE        32'h0001_0000   // 64KB
+`define IO_BASE_ADDR    32'hFFFF_0000
+`define IO_SIZE         32'h0001_0000   // 64KB
+
+// 判断地址是否属于 ROM / RAM / IO 区域
+`define IS_ROM(addr) ( (addr) >= `ROM_BASE_ADDR && (addr) < (`ROM_BASE_ADDR + `ROM_SIZE) )
+`define IS_RAM(addr) ( (addr) >= `RAM_BASE_ADDR && (addr) < (`RAM_BASE_ADDR + `RAM_SIZE) )
+`define IS_IO(addr)  ( (addr) >= `IO_BASE_ADDR  && (addr) < (`IO_BASE_ADDR  + `IO_SIZE) )
+
 // 设计相关
 // ALU相关
 `define ALUOpRange 5:0 // ALUOp范围
@@ -196,7 +209,6 @@
 `define ABN_PRESERVE 5'b01010 
 `define ABN_OVERFLOW 5'b01100
 `define ABN_ERET 5'b01111
-
 
 
 
