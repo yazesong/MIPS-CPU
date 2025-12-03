@@ -79,6 +79,7 @@ module cp0_tb;
     waddr_in = `CP0_REG_COMPARE;
     data_in = 32'h0000_0014;
     @(posedge clk);
+    we_in = `Disable;  // 写完COMPARE后关闭写使能，避免反复清除timer_int_o
     check(compare_out == 32'h0000_0014, "write compare");
 
     // SYS call 异常

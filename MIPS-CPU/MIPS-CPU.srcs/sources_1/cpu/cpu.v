@@ -19,42 +19,37 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-
-module cpu(
-
-    );
-endmodule
-`timescale 1ns / 1ps
 `include "public.v"
 
-// 核心 CPU 顶层（不包含存储/外设）
-// 连接自己的前端 + 从 cpu1 移植的流水线后端
+// 核心 CPU 顶层（不包含存储器和外设）
+// 前端使用 cpu 目录中自己实现的 PC/IF/ID/寄存器/ALU/HILO
+// 后端流水线（ID_EX/EX/EX_MEM/MEM/MEM_WB/CP0/调度）参考 cpu1 的实现方式
 module cpu(
   input  wire              rst,
   input  wire              clk,
-  // 指令接口
+  // 指令存储器接口
   input  wire[`WordRange]  imem_data_in,
   output wire[`WordRange]  imem_addr_out,
   output wire              imem_e_out,
-  // 数据/IO 总线
+  // 数据 / IO 总线接口
   output wire[`WordRange]  bus_addr_out,
   output wire[`WordRange]  bus_write_data_out,
   output wire              bus_en_out,
   output wire              bus_we_out,
   output wire[3:0]         bus_byte_sel_out,
   input  wire[`WordRange]  bus_read_in,
-  // 外部中断
+  // 外部中断输入
   input  wire[5:0]         interrupt_in
 );
 
-  // IF/ID 信号
+  // IF/ID 阶段信号
   wire[`WordRange] pc;
   wire[`WordRange] id_pc_in;
   wire[`WordRange] id_ins_in;
   assign imem_addr_out = pc;
   assign imem_e_out    = ~rst;
 
-  // ID 输出
+  // ID 阶段输出
   wire[`ALUOpRange]    id_aluop_out;
   wire[`WordRange]     id_data1_out;
   wire[`WordRange]     id_data2_out;
@@ -70,7 +65,7 @@ module cpu(
   wire[`WordRange]     id_current_pc_addr_out;
   wire                 pause_req_id;
 
-  // EX 输入
+  // EX 阶段输入
   wire[`ALUOpRange]    ex_aluop_in;
   wire[`WordRange]     ex_data1_in;
   wire[`WordRange]     ex_data2_in;
@@ -83,7 +78,7 @@ module cpu(
   wire[`WordRange]     ex_current_pc_addr_in;
   wire[`WordRange]     ex_abnormal_type_in;
 
-  // EX 输出
+  // EX 阶段输出
   wire                 ex_wreg_e_out;
   wire[`RegRangeLog2]  ex_wreg_addr_out;
   wire[`WordRange]     ex_wreg_data_out;
@@ -118,7 +113,7 @@ module cpu(
   wire[`WordRange]     ex_current_pc_addr_out;
   wire[`WordRange]     ex_abnormal_type_out;
 
-  // MEM 输入
+  // MEM 阶段输入
   wire                 mem_wreg_e_in;
   wire[`RegRangeLog2]  mem_wreg_addr_in;
   wire[`WordRange]     mem_wreg_data_in;
@@ -138,7 +133,7 @@ module cpu(
   wire[`WordRange]     mem_cp0_cause_in;
   wire[`WordRange]     mem_cp0_epc_in;
 
-  // MEM 输出
+  // MEM 阶段输出
   wire                 mem_wreg_e_out;
   wire[`RegRangeLog2]  mem_wreg_addr_out;
   wire[`WordRange]     mem_wreg_data_out;
@@ -156,7 +151,7 @@ module cpu(
   wire[`WordRange]     mem_abnormal_type_out;
   wire[`WordRange]     mem_current_pc_addr_out;
 
-  // WB 输入
+  // WB 阶段输入（写回寄存器、HILO、CP0）
   wire                 wb_wreg_e_in;
   wire[`RegRangeLog2]  wb_wreg_addr_in;
   wire[`WordRange]     wb_wreg_data_in;
@@ -167,7 +162,7 @@ module cpu(
   wire[4:0]            wb_cp0_waddr_in;
   wire[`WordRange]     wb_cp0_wdata_in;
 
-  // GPR 读口
+  // GPR 读端口
   wire                 reg1_re;
   wire                 reg2_re;
   wire[`WordRange]     reg1_data;
@@ -175,24 +170,24 @@ module cpu(
   wire[`RegRangeLog2]  reg1_addr;
   wire[`RegRangeLog2]  reg2_addr;
 
-  // 调度
+  // 流水线暂停与冲刷控制信号
   wire pause_res_pc, pause_res_if, pause_res_id, pause_res_ex, pause_res_mem, pause_res_wb;
   wire flush;
   wire[`WordRange] interrupt_pc_out;
   wire[`WordRange] hilo_hi_out, hilo_lo_out;
 
-  // HILO
+  // HILO 寄存器：写端来自 WB，读端送到 EX
   hilo u_hilo(
     .rst   (rst),
     .clk   (clk),
     .we_in (wb_hilo_we_in),
     .hi_in (wb_hi_data_in),
     .lo_in (wb_lo_data_in),
-    .hi_out(hilo_hi_out), // 读出的 HI
+    .hi_out(hilo_hi_out), // 输出的 HI
     .lo_out(hilo_lo_out)
   );
 
-  // 寄存器堆
+  // 通用寄存器堆
   gpr u_gpr(
     .rst   (rst),
     .clk   (clk),
@@ -219,7 +214,7 @@ module cpu(
     .interrupt_pc (interrupt_pc_out)
   );
 
-  // IF/ID
+  // IF/ID 流水寄存器
   if_id u_if_id(
     .clk    (clk),
     .rst    (rst),
@@ -231,7 +226,7 @@ module cpu(
     .flush  (flush)
   );
 
-  // ID
+  // ID 阶段：译码 + 前递 + 分支判断
   id u_id(
     .rst                 (rst),
     .pc_in               (id_pc_in),
@@ -265,7 +260,7 @@ module cpu(
     .current_id_pc_addr_out(id_current_pc_addr_out)
   );
 
-  // ID/EX
+  // ID/EX 流水寄存器
   id_ex u_id_ex(
     .clk                       (clk),
     .rst                       (rst),
@@ -295,7 +290,7 @@ module cpu(
     .t_ex_abnormal_type_out    (ex_abnormal_type_in)
   );
 
-  // EX
+  // EX 阶段：算术逻辑、乘除法、HILO/CP0 相关控制
   ex u_ex(
     .rst                       (rst),
     .aluop_in                  (ex_aluop_in),
@@ -358,8 +353,8 @@ module cpu(
     .current_ex_pc_addr_out    (ex_current_pc_addr_out)
   );
 
-  // 除法 IP
-  div_signed u_div_signed(
+  // 除法 IP（有符号）：使用 Vivado 生成的 div_gen_signed
+  div_gen_signed u_div_signed(
     .aclk                   (clk),
     .s_axis_divisor_tdata   (div_data2_signed),
     .s_axis_divisor_tvalid  (div_data_valid_signed),
@@ -369,7 +364,8 @@ module cpu(
     .m_axis_dout_tvalid     (div_result_valid_signed)
   );
 
-  div_unsigned u_div_unsigned(
+  // 除法 IP（无符号）：使用 Vivado 生成的 div_gen_unsigned
+  div_gen_unsigned u_div_unsigned(
     .aclk                   (clk),
     .s_axis_divisor_tdata   (div_data2_unsigned),
     .s_axis_divisor_tvalid  (div_data_valid_unsigned),
@@ -379,7 +375,7 @@ module cpu(
     .m_axis_dout_tvalid     (div_result_valid_unsigned)
   );
 
-  // 乘法
+  // 乘法 IP：使用 mult_gen_signed / mult_gen_unsigned，封装在 mul 模块中
   mul u_mul(
     .clk        (clk),
     .dataA      (ex_mul_data1),
@@ -390,7 +386,7 @@ module cpu(
     .valid      (ex_mul_result_valid)
   );
 
-  // EX/MEM
+  // EX/MEM 流水寄存器
   ex_mem u_ex_mem(
     .clk                  (clk),
     .rst                  (rst),
@@ -428,7 +424,7 @@ module cpu(
     .t_mem_abnormal_type  (mem_abnormal_type_in)
   );
 
-  // MEM
+  // MEM 阶段：访存控制、字节/半字访问、异常打包
   mem u_mem(
     .rst                    (rst),
     .wreg_e_in              (mem_wreg_e_in),
@@ -467,7 +463,7 @@ module cpu(
     .current_mem_pc_addr_out(mem_current_pc_addr_out)
   );
 
-  // MEM/WB
+  // MEM/WB 流水寄存器
   mem_wb u_mem_wb(
     .clk            (clk),
     .rst            (rst),
@@ -493,7 +489,7 @@ module cpu(
     .t_wb_cp0_wdata (wb_cp0_wdata_in)
   );
 
-  // 调度（pipeline 原 ppl_scheduler）
+  // 流水线调度器
   pipeline u_ppl(
     .rst            (rst),
     .pause_req_id   (pause_req_id),

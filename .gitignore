@@ -19,6 +19,7 @@
 
 MIPS-CPU/MIPS-CPU.srcs/sources_1/cpu1/
 MIPS-CPU/MIPS-CPU.srcs/sources_1/interface1/
+MIPS-CPU/MIPS-CPU.srcs/sources_1/ip1/
 # Vivado database and logs
 *.jou
 *.log
