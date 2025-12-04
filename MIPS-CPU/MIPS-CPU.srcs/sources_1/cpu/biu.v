@@ -40,23 +40,22 @@ module biu(
 
   always @(*) begin
     data_out = `ZeroWord;
-    // 先判断是不是内存
-    if (`IS_RAM(addr)) begin
-      data_out = ram_data;
-    end else if (`IS_IO(addr)) begin
-      // IO 区域再根据设备 ID 选择
-      case (addr[9:4])  // 与 public 中宏的编码对应
-        `IO_SEVEN_DISPLAY: data_out = seven_display_data;
-        `IO_KEYBORAD    : data_out = keyboard_data;
-        `IO_COUNTER     : data_out = counter_data;
-        `IO_PWM         : data_out = pwm_data;
-        `IO_UART        : data_out = uart_data;
-        `IO_WATCH_DOG   : data_out = watch_dog_data;
-        `IO_LED_LIGHT   : data_out = led_light_data;
-        `IO_SWITCH      : data_out = switch_data;
-        `IO_BUZZER      : data_out = buzzer_data;
-        default         : data_out = `ZeroWord;
+    // IO 地址空间：0xFFFF_FC00 ~ 0xFFFF_FC7F 以及 0xFFFF_FD10 (蜂鸣器)
+    if (addr[31:12] == 20'hfffff) begin
+      case (addr[11:4])
+        8'hC0: data_out = seven_display_data; // 0xFFFFFC00
+        8'hC1: data_out = keyboard_data;      // 0xFFFFFC10
+        8'hC2: data_out = counter_data;       // 0xFFFFFC20
+        8'hC3: data_out = pwm_data;           // 0xFFFFFC30
+        8'hC4: data_out = uart_data;          // 0xFFFFFC40
+        8'hC5: data_out = watch_dog_data;     // 0xFFFFFC50
+        8'hC6: data_out = led_light_data;     // 0xFFFFFC60
+        8'hC7: data_out = switch_data;        // 0xFFFFFC70
+        8'hD1: data_out = buzzer_data;        // 0xFFFFFD10
+        default: data_out = `ZeroWord;
       endcase
+    end else if (addr[31:16] == 16'h8000) begin
+      data_out = ram_data;
     end
   end
 

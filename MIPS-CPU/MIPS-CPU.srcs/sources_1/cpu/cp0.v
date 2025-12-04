@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `include "public.v"
 
-// 协处理器 CP0（简化版，保持 cpu1 功能一致）
+// 协处理器 CP0
 // 负责中断屏蔽、异常记录、EPC 保存和计时器中断
 module cp0(
   input  wire         clk,

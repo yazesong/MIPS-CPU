@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `include "public.v"
 
-// 乘法器：使用 mult_gen_signed / mult_gen_unsigned IP
+// 乘法器
 // start 拉高时锁存一组操作数，IP 延迟 LATENCY 拍后 valid 脉冲
 module mul(
     input  wire              clk,
