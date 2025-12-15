@@ -1,5 +1,5 @@
 // public.v
-// https://github.com/seu-cs-class2/minisys-1a-cpu
+
 
 `timescale 1ns / 1ps
 

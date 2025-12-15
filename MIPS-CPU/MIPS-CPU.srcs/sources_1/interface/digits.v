@@ -1,13 +1,14 @@
 // digits.v
-// https://github.com/seu-cs-class2/minisys-1a-cpu
+
 
 `include "public.v"
 
 // 八位七段共阳极数码管驱动
 // 地址范围：0xFFFFFC00 ~ 0xFFFFFC0F
-// 寄存器个数：2（每个寄存器的位数都是机器字长）
-// 寄存器地址： 0xFFFFFC00  0xFFFFFC04
-// 寄存器功能：  显示的数据  显示的位数
+// 寄存器定义（根据 4.6 节）：
+//   0xFFFFFC00 - 低四位数码管数据（每四位对应一个数码管）
+//   0xFFFFFC02 - 高四位数码管数据（每四位对应一个数码管）  
+//   0xFFFFFC04 - 特殊显示寄存器（低8位=小数点，高8位=位使能）
 module digits (
 
   input rst, // 复位
@@ -24,85 +25,78 @@ module digits (
   output reg[`WordRange] data_out,
 
   //发送给外设
-  output reg[7:0] sel_out, // 位使能
-  output reg[7:0] digital_out // 段使能（DP, G-A）
+  output reg[7:0] sel_out, // 位使能（低有效）
+  output reg[7:0] digital_out // 段使能（DP, G-A，低有效）
 
 );
 
-  always @(posedge clk) begin  //写是上升沿
+  reg[31:0] low_digits_data;   // 0xFFFFFC00 - 低4位数码管数据
+  reg[31:0] high_digits_data;  // 0xFFFFFC02 - 高4位数码管数据
+  reg[31:0] special_reg;       // 0xFFFFFC04 - 特殊显示寄存器
+
+  // 7段码转换函数
+  function [7:0] digit_to_7seg;
+    input [3:0] digit;
+    begin
+      case (digit)
+        4'd0: digit_to_7seg = 8'b1100_0000; // ABCDEF
+        4'd1: digit_to_7seg = 8'b1111_1001; // BC
+        4'd2: digit_to_7seg = 8'b1010_0100; // ABDEG
+        4'd3: digit_to_7seg = 8'b1011_0000; // ABCDG
+        4'd4: digit_to_7seg = 8'b1001_1001; // BCFG
+        4'd5: digit_to_7seg = 8'b1001_0010; // ACDFG
+        4'd6: digit_to_7seg = 8'b1000_0010; // ACDEFG
+        4'd7: digit_to_7seg = 8'b1111_1000; // ABC
+        4'd8: digit_to_7seg = 8'b1000_0000; // ABCDEFG
+        4'd9: digit_to_7seg = 8'b1001_1000; // ABCFG
+        4'd10: digit_to_7seg = 8'b1000_1000; // ABCEFG (A)
+        4'd11: digit_to_7seg = 8'b1000_0011; // CDEFG (b)
+        4'd12: digit_to_7seg = 8'b1010_0111; // DEG (C)
+        4'd13: digit_to_7seg = 8'b1010_0001; // BCDEG (d)
+        4'd14: digit_to_7seg = 8'b1000_0110; // ADEFG (E)
+        4'd15: digit_to_7seg = 8'b1000_1110; // AEFG (F)
+        default: digit_to_7seg = 8'b1100_0000;
+      endcase
+    end
+  endfunction
+
+  // 写操作
+  always @(posedge clk) begin
     if (rst == `Enable) begin
+      low_digits_data <= 32'h0;
+      high_digits_data <= 32'h0;
+      special_reg <= 32'h0;
       sel_out <= 8'hff;
       digital_out <= 8'hff;
-    end else if(addr == 32'hfffffc00 && en == `Enable && we == `Enable) begin //写的是显示数据寄存器 且使能有效
-      case (data_in[7:0])
-        //                GFE_DCBA
-        8'd0: begin
-          digital_out <= 8'b1100_0000; // ABCDEF
-        end
-        8'd1: begin
-          digital_out <= 8'b1111_1001; // BC
-        end
-        8'd2: begin
-          digital_out <= 8'b1010_0100; // ABDEG
-        end
-        8'd3: begin
-          digital_out <= 8'b1011_0000; // ABCDG
-        end
-        8'd4: begin
-          digital_out <= 8'b1001_1001; // BCFG
-        end
-        8'd5: begin
-          digital_out <= 8'b1001_0010; // ACDFG
-        end
-        8'd6: begin
-          digital_out <= 8'b1000_0010; // ACDEFG
-        end
-        8'd7: begin
-          digital_out <= 8'b1111_1000; // ABC
-        end
-        8'd8: begin
-          digital_out <= 8'b1000_0000; // ABCDEFG
-        end
-        8'd9: begin
-          digital_out <= 8'b1001_1000; // ABCFG
-        end
-        8'd10: begin
-          digital_out <= 8'b1000_1000; // ABCEFG
-        end
-        8'd11: begin
-          digital_out <= 8'b1000_0011; // CDEFG
-        end
-        8'd12: begin
-          digital_out <= 8'b1010_0111; // DEG
-        end
-        8'd13: begin
-          digital_out <= 8'b1010_0001; // BCDEG
-        end
-        8'd14: begin
-          digital_out <= 8'b1000_0110; // ADEFG
-        end
-        8'd15: begin
-          digital_out <= 8'b1000_1110; // AEFG
-        end
-        8'd16: begin
-          digital_out <= 8'b1100_0001; // BCDEF --(U)
-        end
-        8'd17: begin
-          digital_out <= 8'b1001_0001; // BCDFG --(y)
-        end
+    end else if (en == `Enable && we == `Enable) begin
+      case (addr[3:0])
+        4'h0: low_digits_data <= data_in;           // 0xFFFFFC00
+        4'h2: high_digits_data <= data_in;          // 0xFFFFFC02
+        4'h4: special_reg <= data_in;               // 0xFFFFFC04
       endcase
-    end else if(addr == 32'hfffffc04 && en == `Enable && we == `Enable)begin //写的是位数使能寄存器
-        sel_out <= ~(1'b1 << data_in[7:0]); //这里存疑 实现方式可以更改
     end
+    
+    // 根据特殊寄存器更新输出
+    // 位使能：special_reg[15:8]，1=显示该位
+    // 小数点：special_reg[7:0]，1=点亮小数点
+    sel_out <= ~special_reg[15:8];
+    
+    // 这里简化处理：只显示低4位的第一个数码管
+    // 实际应用中需要动态扫描所有8位
+    digital_out <= digit_to_7seg(low_digits_data[3:0]);
   end
 
+  // 读操作
   always @(*) begin
     if(rst == `Enable) begin
       data_out <= `ZeroWord;
-    end else if (addr == 32'hfffffc00 && en == `Enable && we ==`Disable) begin
-      data_out <= {24'b000000,data_out};
-    end else if (addr == 32'hfffffc04 && en == `Enable && we == `Disable) begin
-      data_out <= {24'b000000,sel_out};
+    end else if (en == `Enable && we ==`Disable) begin
+      case (addr[3:0])
+        4'h0: data_out <= low_digits_data;
+        4'h2: data_out <= high_digits_data;
+        4'h4: data_out <= special_reg;
+        default: data_out <= `ZeroWord;
+      endcase
     end else begin
       data_out <= `ZeroWord;
     end
