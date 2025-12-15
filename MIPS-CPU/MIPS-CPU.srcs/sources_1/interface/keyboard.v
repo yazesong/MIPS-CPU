@@ -1,12 +1,15 @@
 // keyboard.v
 
+// 修正版：添加状态寄存器 0xFFFFFC12
 
 `include "public.v"
 
 // 4×4矩阵键盘
 // 键盘驱动
 // 键盘物理地址范围：0xFFFFFC10~0xFFFFFC1F
-// 唯一寄存器地址: 0xFFFFFC10（用来存储当前按下的值）
+// 寄存器地址: 
+//   0xFFFFFC10 - 键值寄存器
+//   0xFFFFFC12 - 状态寄存器（1=有按键按下）
 module keyboard (
 
   input rst, // 复位
@@ -45,7 +48,8 @@ module keyboard (
   // 计数器
   reg[15:0] count;
   // 内部寄存器
-  reg[31:0] data;
+  reg[31:0] key_value_reg;  // 键值寄存器
+  reg key_pressed;          // 状态寄存器标志
 
   // 每拍进行一次状态转移,状态转移则state+1，若回转到初态则直接置0
   always @(posedge clk) begin
@@ -53,7 +57,8 @@ module keyboard (
       state <= NO_KEY;
       rows <= 4'b0000;
       count <= 16'd0;
-      data <= 32'hffffffff;
+      key_value_reg <= 32'hffffffff;
+      key_pressed <= 1'b0;
     end else begin
       case (state)
         NO_KEY:begin
@@ -81,13 +86,17 @@ module keyboard (
           end else begin //说明在这一行
             state <= NO_KEY;
             if(cols == 4'b1110)begin
-              data <= 32'd13;
+              key_value_reg <= 32'd13;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b1101) begin
-              data <= 32'd12;
+              key_value_reg <= 32'd12;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b1011) begin
-              data <= 32'd11;
+              key_value_reg <= 32'd11;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b0111) begin
-              data <= 32'd10;
+              key_value_reg <= 32'd10;
+              key_pressed <= 1'b1;
             end
           end   
         end
@@ -98,13 +107,17 @@ module keyboard (
           end else begin //说明在这一行
             state <= NO_KEY;
             if(cols == 4'b1110)begin
-              data <= 32'd15;
+              key_value_reg <= 32'd15;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b1101) begin
-              data <= 32'd9;
+              key_value_reg <= 32'd9;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b1011) begin
-              data <= 32'd6;
+              key_value_reg <= 32'd6;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b0111) begin
-              data <= 32'd3;
+              key_value_reg <= 32'd3;
+              key_pressed <= 1'b1;
             end
           end           
         end
@@ -115,13 +128,17 @@ module keyboard (
           end else begin //说明在这一行
             state <= NO_KEY;
             if(cols == 4'b1110)begin
-              data <= 32'd0;
+              key_value_reg <= 32'd0;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b1101) begin
-              data <= 32'd8;
+              key_value_reg <= 32'd8;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b1011) begin
-              data <= 32'd5;
+              key_value_reg <= 32'd5;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b0111) begin
-              data <= 32'd2;
+              key_value_reg <= 32'd2;
+              key_pressed <= 1'b1;
             end
           end          
         end
@@ -132,51 +149,72 @@ module keyboard (
           end else begin //说明在这一行
             state <= NO_KEY;
             if(cols == 4'b1110)begin
-              data <= 32'd14;
+              key_value_reg <= 32'd14;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b1101) begin
-              data <= 32'd7;
+              key_value_reg <= 32'd7;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b1011) begin
-              data <= 32'd4;
+              key_value_reg <= 32'd4;
+              key_pressed <= 1'b1;
             end else if(cols == 4'b0111) begin
-              data <= 32'd1;
+              key_value_reg <= 32'd1;
+              key_pressed <= 1'b1;
             end
           end           
         end
         YES_KEY:begin
           if( {rows,cols} == 8'b11101110)begin
-            data <= 32'd13;
+            key_value_reg <= 32'd13;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b11101101)begin
-            data <= 32'd12;
+            key_value_reg <= 32'd12;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b11101011)begin
-            data <= 32'd11;
+            key_value_reg <= 32'd11;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b11100111)begin
-            data <= 32'd10;
+            key_value_reg <= 32'd10;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b11011110)begin
-            data <= 32'd15;
+            key_value_reg <= 32'd15;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b11011101)begin
-            data <= 32'd9;
+            key_value_reg <= 32'd9;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b11011011)begin
-            data <= 32'd6;
+            key_value_reg <= 32'd6;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b11010111)begin
-            data <= 32'd3;
+            key_value_reg <= 32'd3;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b10111110)begin
-            data <= 32'd0;
+            key_value_reg <= 32'd0;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b10111101)begin
-            data <= 32'd8;
+            key_value_reg <= 32'd8;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b10111011)begin
-            data <= 32'd5;
+            key_value_reg <= 32'd5;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b10110111)begin
-            data <= 32'd2;
+            key_value_reg <= 32'd2;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b01111110)begin
-            data <= 32'd14;
+            key_value_reg <= 32'd14;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b01111101)begin
-            data <= 32'd7;
+            key_value_reg <= 32'd7;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b01111011)begin
-            data <= 32'd4;
+            key_value_reg <= 32'd4;
+            key_pressed <= 1'b1;
           end else if( {rows,cols} == 8'b01110111)begin
-            data <= 32'd1;
+            key_value_reg <= 32'd1;
+            key_pressed <= 1'b1;
           end else begin
-            data <= 32'hffffffff;
+            key_value_reg <= 32'hffffffff;
+            key_pressed <= 1'b0;
           end
           state <= NO_KEY;
         end
@@ -184,6 +222,11 @@ module keyboard (
           state <= NO_KEY;
         end
       endcase
+      
+      // 如果 CPU 写入状态寄存器，清零状态（软件清零）
+      if (addr == 32'hfffffc12 && en == `Enable && we == `Enable) begin
+        key_pressed <= 1'b0;
+      end
     end
   end
 
@@ -191,7 +234,9 @@ module keyboard (
     if(rst == `Enable) begin
       data_out <= `ZeroWord;
     end else if (addr == 32'hfffffc10 && en == `Enable && we ==`Disable) begin
-      data_out <= data;
+      data_out <= key_value_reg;
+    end else if (addr == 32'hfffffc12 && en == `Enable && we ==`Disable) begin
+      data_out <= {31'b0, key_pressed};
     end else begin
       data_out <= `ZeroWord;
     end
