@@ -168,8 +168,8 @@ module ex(
     wreg_addr_out   = wreg_addr_in;
     wreg_data_out   = (rst == `Enable) ? `ZeroWord : alu_res;
     hilo_we_out     = `Disable;
-    hi_data_out     = `ZeroWord;
-    lo_data_out     = `ZeroWord;
+    hi_data_out     = hi_temp;   // 默认透传旁路值
+    lo_data_out     = lo_temp;
     pause_req       = `Disable;
     div_data_valid_signed   = `Disable;
     div_data_valid_unsigned = `Disable;
@@ -236,15 +236,7 @@ module ex(
         end
         default: ;
       endcase
-    end
-  end
-
-  // HI/LO 写入控制
-  always @(*) begin
-    hilo_we_out = `Disable;
-    hi_data_out = hi_temp;
-    lo_data_out = lo_temp;
-    if (rst != `Enable) begin
+      // HI/LO 写入控制并入同一 always，避免多驱动
       case (aluop_in)
         `ALUOP_DIV:   begin hilo_we_out = `Enable; hi_data_out = div_result_signed[31:0];   lo_data_out = div_result_signed[63:32]; end
         `ALUOP_DIVU:  begin hilo_we_out = `Enable; hi_data_out = div_result_unsigned[31:0]; lo_data_out = div_result_unsigned[63:32]; end

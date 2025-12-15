@@ -26,21 +26,18 @@ module switches (
   input[23:0] switch_in // 24位拨码  来自外设
 );
 
-reg[23:0] switch_reg; //内部寄存器
+reg[23:0] switch_reg; //内部寄存器，按时钟采样拨码状态
 
-always @(posedge clk) begin  //从外设读并写入寄存器 此寄存器不允许从cpu写入
-  if (rst) begin
-    switch_reg <= 24'd0;
-  end else begin
-    switch_reg <= switch_in;
-  end
+always @(posedge clk) begin
+  // 复位后第一拍也加载当前拨码，避免读到全0
+  switch_reg <= switch_in;
 end
 
 always @(*) begin
   if(rst == `Enable) begin
     data_out <= `ZeroWord;
-  end else if(addr == 32'hfffffc70 && en == `Enable && we == `Disable)begin
-    data_out <= switch_reg;
+  end else if(addr == 32'hfffffc70 && we == `Disable)begin
+    data_out <= {8'h00, switch_reg};
   end else begin
     data_out <= `ZeroWord;
   end

@@ -11,10 +11,10 @@ module blk_mem_ram_byte (
 
     reg [7:0] memory [0:16383];
     reg [7:0] data_reg;
+    integer i;
     assign douta = data_reg;
 
     initial begin
-        integer i;
         for (i = 0; i < 16384; i = i + 1)
             memory[i] = 8'h00;
     end

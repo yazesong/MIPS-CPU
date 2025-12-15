@@ -21,9 +21,7 @@
 
 `include "public.v"
 
-// 核心 CPU 顶层（不包含存储器和外设）
-// 前端使用 cpu 目录中自己实现的 PC/IF/ID/寄存器/ALU/HILO
-// 后端流水线（ID_EX/EX/EX_MEM/MEM/MEM_WB/CP0/调度）参考 cpu1 的实现方式
+//  CPU 顶层
 module cpu(
   input  wire              rst,
   input  wire              clk,
