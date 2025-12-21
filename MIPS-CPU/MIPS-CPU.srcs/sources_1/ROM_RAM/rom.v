@@ -11,15 +11,15 @@ module rom(
     input wire upg_done
 );
 
-// ✅ 修复：kickOff 逻辑（保持与ram.v一致）
+// 鉁? 淇锛歬ickOff 閫昏緫锛堜繚鎸佷笌ram.v涓?鑷达級
 wire kickOff = ~upg_rst;
 
 blk_mem_gen_0 u_blk_mem_gen_0 (
-    .addra (kickOff ? addr[15:2] : upg_adr),
-    .clka  (kickOff ? clk        : upg_clk),
-    .douta (data_out),
-    .wea   (kickOff ? 1'b0       : upg_wen),
-    .dina  (kickOff ? 32'h00000000 : upg_dat)
+    .clka  (kickOff ? clk  : upg_clk),
+    .ena   (1'b1),
+    .addra (kickOff ? addr[13:2] : upg_adr),
+    .douta (data_out)
 );
+
 
 endmodule
