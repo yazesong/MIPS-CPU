@@ -30,6 +30,7 @@ module pipeline(
     pause_res_mem = `Disable;
     pause_res_wb  = `Disable;
     flush         = `Disable;
+    interrupt_pc_out = `ZeroWord;
 
     if (rst == `Enable) begin
       pause_res_pc = `Disable;
@@ -39,7 +40,6 @@ module pipeline(
       pause_res_mem = `Disable;
       pause_res_wb = `Disable;
       flush = `Disable;
-      interrupt_pc_out = `ZeroWord;
       // 复位全清
     end else if (abnormal_type != `ZeroWord) begin
       flush = `Enable;

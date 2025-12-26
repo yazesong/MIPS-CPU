@@ -83,6 +83,11 @@ module system_tb_timing;
     upg_wen <= 1'b0;
     $display("[UPG] t=%0t ns  adr=%0d (0x%04x)  data=0x%08h", 
              $time, adr, adr, data);
+
+    // 关键：ROM/RAM 现在用跨时钟握手把 upg 写搬到 mem_clk 域再写入。
+    // 如果这里连续发写（上一笔未 ACK 就来下一笔），后续写会被丢弃。
+    // timing 仿真下握手更慢，保守多等几拍 upg_clk。
+    repeat (20) @(negedge upg_clk);
   end
   endtask
 
@@ -128,6 +133,12 @@ module system_tb_timing;
     //----------------------------------------
     $display(">>> Start programming ROM");
 
+    // 进入“升级模式”：upg_rst=0 且 upg_done=0
+    // （ROM/RAM 内部会在该模式下接受 upg_wen 写入）
+    upg_rst  <= 1'b0;
+    upg_done <= 1'b0;
+    repeat (10) @(negedge upg_clk);
+
     prog_word(BASE + 0,  I0_LUI_T0_FFFF);
     prog_word(BASE + 1,  I1_ORI_T0_FC60);
     prog_word(BASE + 2,  I2_ORI_T1_00FF);
@@ -144,9 +155,9 @@ module system_tb_timing;
     prog_word(BASE + 11, I11_LW_T6_T4_0);
     prog_word(BASE + 12, I12_J_SELF);
 
-    @(negedge upg_clk);
+    // 等待最后一笔写完成（握手落地到 mem_clk 域）
+    repeat (40) @(negedge upg_clk);
     upg_done <= 1'b1;
-    upg_rst  <= 1'b0;
     $display(">>> Finish ROM programming at t=%0t", $time);
 
     #(5*CLK_PERIOD_NS);
@@ -158,7 +169,7 @@ module system_tb_timing;
     //----------------------------------------
     // 等待 LED 被写成 0xFF，最长等待 100000 个外部时钟（约 1ms）
     wait_cnt = 0;
-    while (led_GLD_out !== 8'hFF && wait_cnt < 100000) begin
+    while (led_GLD_out !== 8'hFF && wait_cnt < 100) begin
       @(posedge clk);
       wait_cnt = wait_cnt + 1;
     end

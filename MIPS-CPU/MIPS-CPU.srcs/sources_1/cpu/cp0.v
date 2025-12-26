@@ -3,39 +3,38 @@
 
 // 协处理器 CP0
 // 负责中断屏蔽、异常记录、EPC 保存和计时器中断
-module cp0(
-  input  wire         clk,
-  input  wire         rst,
-  input  wire         we_in,
-  input  wire[4:0]    waddr_in,
-  input  wire[`WordRange] data_in,
-  input  wire[4:0]    raddr_in,
-  input  wire[5:0]    int_in,
-  output reg [`WordRange] data_out,
-  output reg [`WordRange] count_out,
-  output reg [`WordRange] compare_out,
-  output reg [`WordRange] status_out,
-  output reg [`WordRange] cause_out,
-  output reg [`WordRange] epc_out,
-  output reg [`WordRange] config_out,
-  output reg          timer_int_o,
-  // 异常相关
-  input  wire[`WordRange] abnormal_type,
-  input  wire[`WordRange] current_pc_addr_in
-);
+	module cp0(
+	  input  wire         clk,
+	  input  wire         rst,
+	  input  wire         we_in,
+	  input  wire[4:0]    waddr_in,
+	  input  wire[`WordRange] data_in,
+	  input  wire[4:0]    raddr_in,
+	  input  wire[5:0]    int_in,
+	  output reg [`WordRange] data_out,
+	  output reg [`WordRange] count_out,
+	  output reg [`WordRange] compare_out,
+	  output reg [`WordRange] status_out,
+	  output reg [`WordRange] cause_out,
+	  output reg [`WordRange] epc_out,
+	  output reg [`WordRange] config_out,
+	  output reg          timer_int_o,
+	  // 异常相关
+	  input  wire[`WordRange] abnormal_type,
+	  input  wire[`WordRange] current_pc_addr_in
+	);
 
   // 时序寄存器：count/compare/status/cause/epc
-  always @(posedge clk) begin
-    if (rst == `Enable) begin
-      data_out   <= `ZeroWord;
-      count_out  <= `ZeroWord;
-      compare_out<= `ZeroWord;
-      status_out <= 32'd1;       // 默认关闭中断
-      cause_out  <= `ZeroWord;
-      epc_out    <= `ZeroWord;
-      config_out <= `ZeroWord;
-      timer_int_o<= `Disable;
-    end else begin
+	  always @(posedge clk) begin
+	    if (rst == `Enable) begin
+	      count_out  <= `ZeroWord;
+	      compare_out<= `ZeroWord;
+	      status_out <= 32'd1;       // 默认关闭中断
+	      cause_out  <= `ZeroWord;
+	      epc_out    <= `ZeroWord;
+	      config_out <= `ZeroWord;
+	      timer_int_o<= `Disable;
+	    end else begin
       // 基本计数器
       count_out <= count_out + 32'd1;
       cause_out[13:8] <= int_in;

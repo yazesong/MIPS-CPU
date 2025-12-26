@@ -1,3 +1,36 @@
+create_clock -name board_clk -period 10.000 [get_ports board_clk]
+
+# -----------------------------------------------------------------------------
+# Clock constraints (fix timing/methodology)
+# -----------------------------------------------------------------------------
+# 1) 避免 clocking IP 内部的 create_clock（会在层级 pin 上创建主时钟，触发 TIMING-27）
+catch {remove_clocks [get_clocks -quiet -of_objects [get_pins -quiet u_clocking/clk_in1]]}
+
+# 2) 明确约束 clocking IP 输出的派生时钟（Vivado 在某些情况下可能不会正确推导分频比）
+set _cpu_clk_pin [get_pins -quiet u_clocking/cpu_clk]
+if {[llength $_cpu_clk_pin]} {
+  catch {remove_clocks [get_clocks -quiet -of_objects $_cpu_clk_pin]}
+  create_clock -name cpu_clk -period 200.000 $_cpu_clk_pin
+}
+
+set _uart_clk_pin [get_pins -quiet u_clocking/uart_clk]
+if {[llength $_uart_clk_pin]} {
+  catch {remove_clocks [get_clocks -quiet -of_objects $_uart_clk_pin]}
+  create_clock -name uart_clk -period 100.000 $_uart_clk_pin
+}
+
+# 3) 半拍时钟（cpu_clk 取反）用于 ROM/RAM/外设：优先按 generated clock 建模；失败则退化为普通 clock
+set _cpu_clk_n_net [get_nets -quiet cpu_clk_n]
+if {[llength $_cpu_clk_n_net]} {
+  catch {remove_clocks [get_clocks -quiet -of_objects $_cpu_clk_n_net]}
+  if {[catch {create_generated_clock -name cpu_clk_n -source [get_clocks cpu_clk] -invert $_cpu_clk_n_net}]} {
+    create_clock -name cpu_clk_n -period 200.000 $_cpu_clk_n_net
+  }
+}
+
+# 4) CDC：UART 升级域与 CPU 域为异步关系（跨域信号已用握手/同步处理）
+catch {set_clock_groups -asynchronous -group [get_clocks uart_clk] -group [get_clocks {cpu_clk cpu_clk_n}]}
+catch {set_clock_groups -asynchronous -group [get_clocks board_clk] -group [get_clocks {cpu_clk cpu_clk_n uart_clk}]}
 set_property IOSTANDARD LVCMOS33 [get_ports rx]
 set_property IOSTANDARD LVCMOS33 [get_ports tx]
 set_property IOSTANDARD LVCMOS33 [get_ports {buttons_in[4]}]

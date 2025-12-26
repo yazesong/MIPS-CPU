@@ -55,23 +55,20 @@ module mem (
   assign mem_store_data_out = mem_store_data_in;
   //先判断异常
   always @(*) begin
-    if(rst == `Enable) begin
-      abnormal_type_out = `ZeroWord;
-    end else begin
-      if(current_mem_pc_addr_in != `ZeroWord) begin //如果是0指令就根本不变异常的输出
-        if(cp0_status_in[0] == `Enable)begin  //如果屏蔽了中断和异常则输出没有异常
-          //否则直接把上级传下来的异常类型输出
-          abnormal_type_out = {16'h0000, cp0_cause_in[13:8], 1'b0, abnormal_type_in[6:2], 2'b00};  
-          current_mem_pc_addr_out = current_mem_pc_addr_in;
-        end else begin
-          if(abnormal_type_in[6:2] == `ABN_ERET)begin //在屏蔽中断时候如果遇到了ERET还是要发送异常给cp0和ppl
-            abnormal_type_out = {16'h0000, cp0_cause_in[13:8], 1'b0, abnormal_type_in[6:2], 2'b00};
-          end else begin
-            abnormal_type_out = `ZeroWord;
-          end      
-        end 
-      end else begin
-        abnormal_type_out = `ZeroWord;
+    // 默认无异常，避免推断锁存
+    abnormal_type_out = `ZeroWord;
+    current_mem_pc_addr_out = `ZeroWord;
+
+    if (rst != `Enable && current_mem_pc_addr_in != `ZeroWord) begin
+      // 如果是0指令就根本不传递异常
+      if (cp0_status_in[0] == `Enable) begin
+        // 未屏蔽异常：直接把上级传下来的异常类型输出
+        abnormal_type_out = {16'h0000, cp0_cause_in[13:8], 1'b0, abnormal_type_in[6:2], 2'b00};
+        current_mem_pc_addr_out = current_mem_pc_addr_in;
+      end else if (abnormal_type_in[6:2] == `ABN_ERET) begin
+        // 屏蔽中断时仍需处理 ERET
+        abnormal_type_out = {16'h0000, cp0_cause_in[13:8], 1'b0, abnormal_type_in[6:2], 2'b00};
+        current_mem_pc_addr_out = current_mem_pc_addr_in;
       end
     end
   end
@@ -80,6 +77,7 @@ module mem (
     if (rst == `Enable) begin
       wreg_e_out = `Disable;
       wreg_data_out = `ZeroWord;
+      wreg_addr_out = `RegCountLog2'd0;
       hilo_we_out = `Disable;
       hi_data_out = `ZeroWord;
       lo_data_out = `ZeroWord;

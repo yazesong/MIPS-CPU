@@ -1,24 +1,24 @@
 `timescale 1ns / 1ps
 `include "public.v"
 
-// ¶¥²ã SoC£º½Ó¿ÚÓë cpu1/minisys ±£³ÖÒ»ÖÂ£¬Ê¹ÓÃ UART_BMPG Í¨¹ı´®¿ÚÉı¼¶³ÌĞò
+// æ¤¤è·ºçœ° SoCé”›æ°­å¸´é™ï½„ç¬Œ cpu1/minisys æ·‡æ¿‡å¯”æ¶“â‚¬é‘·è¾¾ç´æµ£è·¨æ•¤ UART_BMPG é–«æ°³ç¹ƒæ¶“æ’å½›é—å›©éª‡ç»‹å¬ªç°­
 module system(
   input  wire        board_rst,
   input  wire        board_clk,
 
-  // ²¦Âë¿ª¹Ø / °´¼ü
+  // é·ã„§çˆœå¯®â‚¬éï¿½ / é¸å¤æ•­
   input  wire[23:0]  switches_in,
   input  wire[4:0]   buttons_in,
 
-  // ¾ØÕó¼üÅÌ
+  // é­â•…æ¨€é–¿î†¾æ´
   input  wire[3:0]   keyboard_cols_in,
   output wire[3:0]   keyboard_rows_out,
 
-  // ÊıÂë¹Ü
+  // éæ‰®çˆœç» ï¿½
   output wire[7:0]   digits_sel_out,
   output wire[7:0]   digits_data_out,
 
-  // ·äÃùÆ÷
+  // é“šå‚ç¦é£ï¿½
   output wire        beep_out,
 
   // LED
@@ -31,31 +31,35 @@ module system(
   output wire        tx
 );
 
-  // Ê±ÖÓÓë¸´Î»£¨Óë cpu1 Í¬²½£©
-  wire cpu_clk;
-  wire uart_clk;
+	  // éƒå •æŒ“æ¶“åº¡î˜²æµ£å¶ç´™æ¶“ï¿½ cpu1 éšå±¾î„é”›ï¿½
+	  wire cpu_clk;
+	  wire uart_clk;
 
-  // °´¼üÈ¥¶¶ºóµÄÉı¼¶¸´Î»
-  wire spg_bufg;
-  BUFG u_bufg(.I(buttons_in[3]), .O(spg_bufg));
-  reg upg_rst;
-  always @(posedge board_clk) begin
-    if (board_rst) begin
-      upg_rst <= 1'b1;
-    end else if (spg_bufg) begin
-      upg_rst <= 1'b0;
-    end
-  end
-  wire rst = board_rst | ~upg_rst;
+	  // é—å›©éª‡é¸å¤æ•­éšå±¾î„é’ï¿½ board_clké”›å Ÿå¯œé–¿î†½æ§¸é…î‡€â‚¬ï¿½ IOé”›å±¼ç¬‰é‘³èŠ¥å¬é˜å©šâ”é”ï¿½ BUFGé”›ï¿½
+	  reg btn3_ff1, btn3_ff2;
+	  always @(posedge board_clk) begin
+	    btn3_ff1 <= buttons_in[3];
+	    btn3_ff2 <= btn3_ff1;
+	  end
+	  wire spg_sync = btn3_ff2;
 
-  // Ê±ÖÓ·ÖÆµ IP£¨Óë minisys Ò»ÖÂ£©
-  clocking u_clocking(
-    .clk_in1 (board_clk), // 100MHz
+	  reg upg_rst;
+	  always @(posedge board_clk) begin
+	    if (board_rst) begin
+	      upg_rst <= 1'b1;
+	    end else if (spg_sync) begin
+	      upg_rst <= 1'b0;
+	    end
+	  end
+
+	  // éƒå •æŒ“é’å—›î•¶ IPé”›å œç¬Œ minisys æ¶“â‚¬é‘·è¾¾ç´š
+	  clocking u_clocking(
+	    .clk_in1 (board_clk), // 100MHz
     .cpu_clk (cpu_clk),   // 5MHz
     .uart_clk(uart_clk)   // 10MHz
   );
 
-  // UART Éı¼¶ IP
+  // UART é—å›©éª‡ IP
   wire        upg_clk_o;
   wire        upg_wen_o;
   wire [14:0] upg_adr_o;
@@ -70,16 +74,21 @@ module system(
     .upg_adr_o (upg_adr_o),
     .upg_dat_o (upg_dat_o),
     .upg_done_o(upg_done_o),
-    .upg_rx_i  (rx),
-    .upg_tx_o  (tx_uart)
-  );
+	    .upg_rx_i  (rx),
+	    .upg_tx_o  (tx_uart)
+	  );
 
-  // CPU 6Ë6 Ö¸Áî´æ´¢
+	  // æ¾¶å¶„ç¶…ç»›æ «æšé”›ï¿½
+	  // - å§ï½…çˆ¶æ¶“å©„æ•¸é”›æ­¶pg_rst=1é”›å­‹PU é©å­˜å¸´æ©æ„¯î”‘é”›å œå¨‡é¢ï¿½ COE é’æ¿†îé–æ «æ®‘ BIOSé”›ï¿½
+	  // - é¸å¤æ•­æ©æ¶˜å†é—å›©éª‡é”›æ­¶pg_rst=0é”›å­‹PU æ·‡æ¿‡å¯”æ¾¶å¶„ç¶…é©æ‘åŸŒ upg_done_o=1
+	  wire rst = board_rst | (~upg_rst & ~upg_done_o);
+
+  // CPU éˆ¬ï¿½ é¸å›¦æŠ¤ç€›æ¨ºå
   wire[`WordRange] imem_data_in;
   wire[`WordRange] imem_addr_out;
   wire             imem_e_out;
 
-  // CPU 6Ë6 Êı¾İ×ÜÏß
+  // CPU éˆ¬ï¿½ éç‰ˆåµé¬è¤åš
   wire[`WordRange] bus_addr;
   wire[`WordRange] bus_write_data;
   wire[`WordRange] bus_read_data;
@@ -87,7 +96,7 @@ module system(
   wire             bus_we;
   wire[3:0]        bus_byte_sel;
 
-  // ÍâÉè¶ÁÊı¾İ
+  // æ¾¶æ ¬î†•ç’‡ç»˜æšŸé¹ï¿½
   wire[`WordRange] ram_data;
   wire[`WordRange] seven_display_data;
   wire[`WordRange] keyboard_data;
@@ -100,7 +109,7 @@ module system(
   wire[`WordRange] switch_data;
   wire[`WordRange] buzzer_data;
 
-  // ÖĞ¶Ï£¨Ôİ²»Ê¹ÓÃÍâ²¿£©
+  // æ¶“î…ŸæŸ‡é”›å Ÿæ®æ¶“å¶„å¨‡é¢ã„¥î˜»é–®îŸ’ç´š
   wire interrupt0 = 1'b0;
   wire interrupt1 = 1'b0;
   wire interrupt2 = 1'b0;
@@ -124,7 +133,7 @@ module system(
     .interrupt_in      ({interrupt5, interrupt4, interrupt3, interrupt2, interrupt1, interrupt0})
   );
 
-  // ROM£¨Ö¸Áî´æ´¢£©
+  // ROMé”›å Ÿå¯šæµ ã‚…ç“¨éŒîŸ’ç´š
   rom u_rom(
     .clk      (~cpu_clk),
     .addr     (imem_addr_out),
@@ -137,7 +146,7 @@ module system(
     .upg_done (upg_done_o)
   );
 
-  // RAM£¨Êı¾İ´æ´¢£©
+  // RAMé”›å ŸæšŸé¹î†¼ç“¨éŒîŸ’ç´š
   ram u_ram(
     .clk      (~cpu_clk),
     .eable    (bus_eable),
@@ -154,7 +163,7 @@ module system(
     .upg_done (upg_done_o)
   );
 
-  // ¶ÁÊı¾İÖÙ²Ã
+  // ç’‡ç»˜æšŸé¹î†»å¾Šç‘ï¿½
   biu u_biu(
     .addr               (bus_addr),
     .ram_data           (ram_data),
@@ -170,7 +179,7 @@ module system(
     .data_out           (bus_read_data)
   );
 
-  // Î´ÊµÏÖµÄ UART/ÆäËüÍâÉè¶ÁÊı¾İÄ¬ÈÏ·µ»ØÈ« 0
+  // éˆî„ç–„éœæ‰®æ®‘ UART/éè·ºç• æ¾¶æ ¬î†•ç’‡ç»˜æšŸé¹î‡€ç²¯ç’ã‚ˆç¹‘é¥ç‚²å 0
   assign uart_data      = `ZeroWord;
   assign watch_dog_data = `ZeroWord;
 
@@ -189,7 +198,7 @@ module system(
     .GLD      (led_GLD_out)
   );
 
-  // ²¦Âë¿ª¹Ø
+  // é·ã„§çˆœå¯®â‚¬éï¿½
   switches u_switches(
     .rst      (rst),
     .clk      (~cpu_clk),
@@ -202,7 +211,7 @@ module system(
     .switch_in(switches_in)
   );
 
-  // ¾ØÕó¼üÅÌ
+  // é­â•…æ¨€é–¿î†¾æ´
   keyboard u_keyboard(
     .rst      (rst),
     .clk      (~cpu_clk),
@@ -216,7 +225,7 @@ module system(
     .rows     (keyboard_rows_out)
   );
 
-  // ÊıÂë¹Ü
+  // éæ‰®çˆœç» ï¿½
   digits u_digits(
     .rst      (rst),
     .clk      (~cpu_clk),
@@ -230,7 +239,7 @@ module system(
     .digital_out(digits_data_out)
   );
 
-  // ·äÃùÆ÷
+  // é“šå‚ç¦é£ï¿½
   beep u_beep(
     .rst      (rst),
     .clk      (~cpu_clk),
@@ -256,7 +265,7 @@ module system(
     .result   (pwm_result)
   );
 
-  // ¶¨Ê±Æ÷
+  // ç€¹æ°­æ¤‚é£ï¿½
   wire [15:0] timer_out1, timer_out2;
   wire        timer_cout1, timer_cout2;
   timer u_timer(
@@ -274,7 +283,7 @@ module system(
   );
   assign counter_data = {timer_out2, timer_out1};
 
-  // ¿´ÃÅ¹·£¨µ±Ç°½öÌá¹©¶ÁÊı¾İ½Ó¿Ú£¬¸´Î»Î´½ÓÈë£©
+  // éªå¬®æ£¬é™æ¥‹ç´™è¤°æ’³å¢ æµ å‘®å½æ¸šæ¶œî‡°éç‰ˆåµéºãƒ¥å½›é”›å±½î˜²æµ£å¶†æ¹­éºãƒ¥å†é”›ï¿½
   watchdog u_watchdog(
     .rst      (rst),
     .clk      (~cpu_clk),
@@ -286,7 +295,7 @@ module system(
     .cpu_rst  ()
   );
 
-  // UART Éı¼¶ TX Êä³ö
+  // UART é—å›©éª‡ TX æˆæ’³åš­
   assign tx = tx_uart;
 
 endmodule

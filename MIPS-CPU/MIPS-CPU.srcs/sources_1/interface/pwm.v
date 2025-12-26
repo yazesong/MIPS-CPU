@@ -49,51 +49,32 @@ module pwm (
     end
   end
 
-  always @(posedge clk) begin //写是上升沿写
-    if(addr[31:4] == {28'hfffffc3} && en == `Enable && we == `Enable)begin
-      if(addr[3:2] == 2'b00) begin
-        if(byte_sel[0] == 1'b1)begin
-          threshold[7:0] <= data_in[7:0];
-        end
-        if(byte_sel[1] == 1'b1)begin
-          threshold[15:8] <= data_in[15:8];
-        end
-        if(byte_sel[2] == 1'b1) begin
-          compare[7:0] <= data_in[23:16];
-        end
-        if(byte_sel[3] == 1'b1) begin
-          compare[15:8] <= data_in[31:24];
-        end
-      end else if(addr[3:2] == 2'b01) begin
-        if(byte_sel[0] == 1'b1) begin
-          ctrl <= data_in[7:0];
-        end
-      end
-    end
-  end
+  wire [15:0] current_next = (current >= threshold) ? 16'd0 : (current + 16'd1);
 
   always @(posedge clk) begin
-    // 重设
     if (rst == `Enable) begin
       threshold <= 16'hffff;
-      compare <= 16'h7fff;
-      ctrl <= 8'd1;
-      current <= 16'd0;
-      result <= `Enable;
+      compare   <= 16'h7fff;
+      ctrl      <= 8'd1;
+      current   <= 16'd0;
+      result    <= `Enable;
     end else begin
-      if (current == threshold) begin
-        current <= 16'd0;
-        result <= `Enable;
+      // 写寄存器（总线写）
+      if (addr[31:4] == {28'hfffffc3} && en == `Enable && we == `Enable) begin
+        if (addr[3:2] == 2'b00) begin
+          if (byte_sel[0]) threshold[7:0]  <= data_in[7:0];
+          if (byte_sel[1]) threshold[15:8] <= data_in[15:8];
+          if (byte_sel[2]) compare[7:0]    <= data_in[23:16];
+          if (byte_sel[3]) compare[15:8]   <= data_in[31:24];
+        end else if (addr[3:2] == 2'b01) begin
+          if (byte_sel[0]) ctrl <= data_in[7:0];
+        end
       end
-        // 一般情况下加一即可
-        current = current + 16'd1;
-    end
-      // 只有在使能，且控制寄存器[0]位有效时，才保证输出可靠
-    if ( ctrl[0] ) begin
-      if (current > compare) begin
-        result <= `Disable;
-      end else begin
-        result <= `Enable;
+
+      // PWM 计数与输出
+      current <= current_next;
+      if (ctrl[0]) begin
+        result <= (current_next > compare) ? `Disable : `Enable;
       end
     end
   end

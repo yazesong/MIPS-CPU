@@ -34,19 +34,26 @@ module system(
   // 时钟与复位（与 cpu1 同步）
   wire cpu_clk;
   wire uart_clk;
+  // CPU 外设/存储用半拍时钟（等价于 negedge cpu_clk）
+  wire cpu_clk_n;
+  assign cpu_clk_n = ~cpu_clk;
 
-  // 按键去抖后的升级复位
-  wire spg_bufg;
-  BUFG u_bufg(.I(buttons_in[3]), .O(spg_bufg));
+  // 升级按键同步到 board_clk（按键是普通 IO，不能拿去驱动 BUFG）
+  reg btn3_ff1, btn3_ff2;
+  always @(posedge board_clk) begin
+    btn3_ff1 <= buttons_in[3];
+    btn3_ff2 <= btn3_ff1;
+  end
+  wire spg_sync = btn3_ff2;
+
   reg upg_rst;
   always @(posedge board_clk) begin
     if (board_rst) begin
       upg_rst <= 1'b1;
-    end else if (spg_bufg) begin
+    end else if (spg_sync) begin
       upg_rst <= 1'b0;
     end
   end
-  wire rst = board_rst | ~upg_rst;
 
   // 时钟分频 IP（与 minisys 一致）
   clocking u_clocking(
@@ -73,6 +80,11 @@ module system(
     .upg_rx_i  (rx),
     .upg_tx_o  (tx_uart)
   );
+
+  // 复位策略：
+  // - 正常上电：upg_rst=1，CPU 直接运行（使用 COE 初始化的 BIOS）
+  // - 按键进入升级：upg_rst=0，CPU 保持复位直到 upg_done_o=1
+  wire rst = board_rst | (~upg_rst & ~upg_done_o);
 
   // CPU ⇄ 指令存储
   wire[`WordRange] imem_data_in;
@@ -126,7 +138,7 @@ module system(
 
   // ROM（指令存储）
   rom u_rom(
-    .clk      (~cpu_clk),
+    .clk      (cpu_clk_n),
     .addr     (imem_addr_out),
     .data_out (imem_data_in),
     .upg_rst  (upg_rst),
@@ -139,7 +151,7 @@ module system(
 
   // RAM（数据存储）
   ram u_ram(
-    .clk      (~cpu_clk),
+    .clk      (cpu_clk_n),
     .eable    (bus_eable),
     .we       (bus_we),
     .addr     (bus_addr),
@@ -177,7 +189,7 @@ module system(
   // LED
   leds u_leds(
     .rst      (rst),
-    .clk      (~cpu_clk),
+    .clk      (cpu_clk_n),
     .addr     (bus_addr),
     .en       (bus_eable),
     .byte_sel (bus_byte_sel),
@@ -192,7 +204,7 @@ module system(
   // 拨码开关
   switches u_switches(
     .rst      (rst),
-    .clk      (~cpu_clk),
+    .clk      (cpu_clk_n),
     .addr     (bus_addr),
     .en       (bus_eable),
     .byte_sel (bus_byte_sel),
@@ -205,7 +217,7 @@ module system(
   // 矩阵键盘
   keyboard u_keyboard(
     .rst      (rst),
-    .clk      (~cpu_clk),
+    .clk      (cpu_clk_n),
     .addr     (bus_addr),
     .en       (bus_eable),
     .byte_sel (bus_byte_sel),
@@ -219,7 +231,7 @@ module system(
   // 数码管
   digits u_digits(
     .rst      (rst),
-    .clk      (~cpu_clk),
+    .clk      (cpu_clk_n),
     .addr     (bus_addr),
     .en       (bus_eable),
     .byte_sel (bus_byte_sel),
@@ -233,7 +245,7 @@ module system(
   // 蜂鸣器
   beep u_beep(
     .rst      (rst),
-    .clk      (~cpu_clk),
+    .clk      (cpu_clk_n),
     .addr     (bus_addr),
     .en       (bus_eable),
     .byte_sel (bus_byte_sel),
@@ -246,7 +258,7 @@ module system(
   // PWM
   pwm u_pwm(
     .rst      (rst),
-    .clk      (~cpu_clk),
+    .clk      (cpu_clk_n),
     .addr     (bus_addr),
     .en       (bus_eable),
     .byte_sel (bus_byte_sel),
@@ -261,7 +273,7 @@ module system(
   wire        timer_cout1, timer_cout2;
   timer u_timer(
     .rst   (rst),
-    .clk   (~cpu_clk),
+    .clk   (cpu_clk_n),
     .cs    (bus_eable && bus_addr[31:4] == 28'hfffffc2),
     .rd    (bus_eable && (bus_we == `Disable)),
     .wr    (bus_eable && (bus_we == `Enable)),
@@ -277,7 +289,7 @@ module system(
   // 看门狗（当前仅提供读数据接口，复位未接入）
   watchdog u_watchdog(
     .rst      (rst),
-    .clk      (~cpu_clk),
+    .clk      (cpu_clk_n),
     .addr     (bus_addr),
     .en       (bus_eable),
     .byte_sel (bus_byte_sel),

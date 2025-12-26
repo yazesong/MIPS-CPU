@@ -1,14 +1,14 @@
 `timescale 1ns / 1ps
 `include "public.v"
 
-// systemtest£º·ÂÕæ×¨ÓÃ¶¥²ã£¬Éı¼¶¿ÚÓÉ testbench Ö±½ÓÇı¶¯
+// systemtestï¼šä»¿çœŸä¸“ç”¨é¡¶å±‚ï¼Œå‡çº§å£ç”± testbench ç›´æ¥é©±åŠ¨
 module systemtest#(
   parameter SIM_DIRECT_CLK = 1'b0
 )(
-  input  wire        clk,      // 100MHz °å¼¶Ê±ÖÓ£¨À´×Ô testbench£©
-  input  wire        rst,      // ÏµÍ³¸´Î»£¬¸ßÓĞĞ§£¨À´×Ô testbench£©
+  input  wire        clk,      // 100MHz æ¿çº§æ—¶é’Ÿï¼ˆæ¥è‡ª testbenchï¼‰
+  input  wire        rst,      // ç³»ç»Ÿå¤ä½ï¼Œé«˜æœ‰æ•ˆï¼ˆæ¥è‡ª testbenchï¼‰
 
-  // ÍâÉè¶Ë¿Ú£¨Óë system Ò»ÖÂ£¬·½±ã¸´ÓÃ testbench£©
+  // å¤–è®¾ç«¯å£ï¼ˆä¸ system ä¸€è‡´ï¼Œæ–¹ä¾¿å¤ç”¨ testbenchï¼‰
   input  wire [23:0] switches_in,
   input  wire [3:0]  keyboard_cols_in,
   output wire [3:0]  keyboard_rows_out,
@@ -21,7 +21,7 @@ module systemtest#(
   input  wire        rx,
   output wire        tx,
 
-  // Éı¼¶¿Ú£¨Óë ROM/RAM Ö±½ÓÏàÁ¬£©
+  // å‡çº§å£ï¼ˆä¸ ROM/RAM ç›´æ¥ç›¸è¿ï¼‰
   input  wire        upg_rst_i,
   input  wire        upg_clk_i,
   input  wire        upg_wen_i,
@@ -31,13 +31,14 @@ module systemtest#(
 );
 
   //============================================================
-  // 1. Ê±ÖÓÓë¸´Î»
+  // 1. æ—¶é’Ÿä¸å¤ä½
   //============================================================
   wire cpu_clk;
   wire uart_clk;
   wire mem_clk;
+  wire cpu_clk_n;
 
-  // ÓëÉÏ°åÓÃ clocking IP Ò»ÖÂ£¬±£Ö¤Ê±Ğò·ÂÕæ/ÉÏ°åĞĞÎªÒ»ÖÂ
+  // ä¸ä¸Šæ¿ç”¨ clocking IP ä¸€è‡´ï¼Œä¿è¯æ—¶åºä»¿çœŸ/ä¸Šæ¿è¡Œä¸ºä¸€è‡´
   generate
     if (SIM_DIRECT_CLK) begin : gen_sim_clk_bypass
       assign cpu_clk  = clk;
@@ -51,13 +52,15 @@ module systemtest#(
     end
   endgenerate
 
-  assign mem_clk = cpu_clk;
+  // ä¸ä¸Šæ¿ system.v ä¿æŒä¸€è‡´ï¼šå¤–è®¾/å­˜å‚¨ä½¿ç”¨ cpu_clk çš„åç›¸ï¼ˆç­‰ä»·äº negedge cpu_clkï¼‰
+  assign cpu_clk_n = ~cpu_clk;
+  assign mem_clk = cpu_clk_n;
 
-  // ÎªÁË±£ÏÕ£ºÔÚÉı¼¶Î´Íê³É (upg_done_i=0) Ê±±£³Ö CPU ´¦ÓÚ¸´Î»
+  // ä¸ºäº†ä¿é™©ï¼šåœ¨å‡çº§æœªå®Œæˆ (upg_done_i=0) æ—¶ä¿æŒ CPU å¤„äºå¤ä½
   wire rst_int = rst | ~upg_done_i;
 
   //============================================================
-  // 2. CPU Óë×ÜÏß£¨Óë system ÍêÈ«Ò»ÖÂ£©
+  // 2. CPU ä¸æ€»çº¿ï¼ˆä¸ system å®Œå…¨ä¸€è‡´ï¼‰
   //============================================================
   wire[`WordRange] imem_data_in;
   wire[`WordRange] imem_addr_out;
@@ -105,7 +108,7 @@ module systemtest#(
   );
 
   //============================================================
-  // 3. ROM / RAM£¨Éı¼¶¿ÚÓÉ testbench Ö±½Ó¿ØÖÆ£©
+  // 3. ROM / RAMï¼ˆå‡çº§å£ç”± testbench ç›´æ¥æ§åˆ¶ï¼‰
   //============================================================
   rom u_rom (
     .clk      (mem_clk),
@@ -136,7 +139,7 @@ module systemtest#(
   );
 
   //============================================================
-  // 4. BIU & ÍâÉè£¨Óë system ÍêÈ«Ò»ÖÂ£©
+  // 4. BIU & å¤–è®¾ï¼ˆä¸ system å®Œå…¨ä¸€è‡´ï¼‰
   //============================================================
   biu u_biu (
     .addr               (bus_addr),
@@ -262,8 +265,8 @@ module systemtest#(
     .cpu_rst  ()
   );
 
-  // ·ÂÕæ¶¥²ãÀïÔİÊ±²»Ê¹ÓÃ UART Õı³£Í¨ĞÅ£¬ËùÒÔ tx Ö±½Ó±£³Ö¸ßµçÆ½
-  // Èç¹ûÄãºóĞøÒª×ö UART ¹¦ÄÜ²âÊÔ£¬¿ÉÒÔÔÚÕâÀï½ÓÉÏÕæÕıµÄ´®¿Ú IP¡£
+  // ä»¿çœŸé¡¶å±‚é‡Œæš‚æ—¶ä¸ä½¿ç”¨ UART æ­£å¸¸é€šä¿¡ï¼Œæ‰€ä»¥ tx ç›´æ¥ä¿æŒé«˜ç”µå¹³
+  // å¦‚æœä½ åç»­è¦åš UART åŠŸèƒ½æµ‹è¯•ï¼Œå¯ä»¥åœ¨è¿™é‡Œæ¥ä¸ŠçœŸæ­£çš„ä¸²å£ IPã€‚
   assign tx = 1'b1;
 
 endmodule

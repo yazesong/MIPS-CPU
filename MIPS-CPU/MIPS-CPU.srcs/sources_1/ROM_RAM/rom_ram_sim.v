@@ -71,9 +71,9 @@ module rom_ram_sim();
     // ==================== 初始化和测试过程 ====================
     initial begin
         // 初始化所有信号
-        upg_rst = 0;      // ✅ 修改：初始为0（运行模式）
+        upg_rst = 1;      // 初始为1（运行模式：CPU 侧访问）
         upg_wen = 0;
-        upg_done = 1;     // ✅ 修改：初始为1
+        upg_done = 0;     // UART IP 复位时 done 为0（对运行模式不影响）
         upg_adr = 14'b0;
         upg_dat = 32'h0;
         
@@ -288,8 +288,8 @@ module rom_ram_sim();
         #100;
         
         // 进入升级模式
-        $display("Time: %t, Entering upgrade mode (upg_rst=1)", $time);
-        upg_rst = 1;
+        $display("Time: %t, Entering upgrade mode (upg_rst=0)", $time);
+        upg_rst = 0;
         upg_done = 0;
         @(posedge upg_clk);
         #2;
@@ -349,8 +349,8 @@ module rom_ram_sim();
         #100;
         
         // 进入升级模式
-        $display("Time: %t, Entering ROM upgrade mode (upg_rst=1)", $time);
-        upg_rst = 1;
+        $display("Time: %t, Entering ROM upgrade mode (upg_rst=0)", $time);
+        upg_rst = 0;
         upg_done = 0;
         @(posedge upg_clk);
         #2;
